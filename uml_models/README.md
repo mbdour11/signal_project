@@ -5,19 +5,19 @@ This folder contains UML class diagrams and system design explanations for the C
 ## 1. Alert Generation System
 
 ### Classes
-- `AlertGenerator`
 - `Alert`
-- `AlertManager`
-- `ThresholdRule`
+- `AlertGenerator`
 - `Patient`
 
 ### Key Relationships
-- `AlertGenerator` uses `ThresholdRule` to check incoming data.
-- If a rule is triggered, an `Alert` is created and passed to `AlertManager`.
-- Each `Patient` has specific rules defined.
+- `AlertGenerator` generates alerts based on specific conditions.
+- `Patient` represents the individual receiving alerts.
+- `Alert` represents an individual alert related to a patient.
 
 ### Explanation
-The alert generation system monitors patient data and compares it to predefined threshold rules. If a threshold is exceeded, an alert is created containing the patient ID, timestamp, and alert label. The alert is then passed to the `AlertManager`, which handles further processing. This modular design allows additional rule types or alert-handling logic to be added without changing existing components.
+The alert generation system monitors patient data and generates alerts based on predefined conditions. When a condition is met, an alert is created, which includes the patient ID, timestamp, and alert type. This system is crucial for notifying healthcare providers of critical patient conditions.
+
+![Alert Generation System UML](ALERTUML.png)
 
 ---
 
@@ -25,54 +25,56 @@ The alert generation system monitors patient data and compares it to predefined 
 
 ### Classes
 - `DataStorage`
-- `PatientData`
-- `DataRetriever`
-- `AccessController`
+- `Patient`
+- `PatientRecord`
 
 ### Key Relationships
-- `DataStorage` maintains a history of patient `PatientData` entries.
-- `DataRetriever` allows querying historical records.
-- `AccessController` enforces role-based permissions for accessing data.
+- `DataStorage` maintains a history of patient `PatientRecord` entries.
+- `Patient` represents the individual whose records are stored.
+- `PatientRecord` holds the data measurements (e.g., heart rate, blood pressure).
 
 ### Explanation
-This system is responsible for managing and accessing patient health data. The `DataStorage` class stores records, while `DataRetriever` provides methods for querying specific entries. Access to sensitive data is controlled through the `AccessController` class to ensure privacy and support proper user authorization.
+This system is responsible for managing and accessing patient health data. The `DataStorage` class stores records, while `Patient` and `PatientRecord` manage individual data points for each patient.
+
+![Data Storage System UML](DATAUML.png)
 
 ---
 
 ## 3. Patient Identification System
 
 ### Classes
-- `PatientIdentifier`
-- `HospitalPatient`
-- `IdentityManager`
+- `Patient`
 
 ### Key Relationships
-- `PatientIdentifier` maps internal IDs to hospital records.
-- `HospitalPatient` stores real-world patient information.
-- `IdentityManager` coordinates lookups and handles mismatches.
+- `Patient` represents the individual, storing their medical data.
 
 ### Explanation
-The identification system ensures that data produced by the simulation matches real hospital records. `PatientIdentifier` handles the mapping between simulator IDs and hospital patients, while `IdentityManager` handles validation and conflict resolution when mismatches occur.
+The identification system ensures that each patient's health data is correctly tracked and associated with the appropriate patient identity. In this case, `Patient` acts as the primary class responsible for holding and managing patient-related data.
+
+![Patient Identification System UML](PATIENTUML.png)
 
 ---
 
-## 4. Data Access Layer
+## 4. Data Generation and Output System
 
 ### Classes
-- `DataListener` (interface)
-- `TCPDataListener`
-- `WebSocketDataListener`
-- `FileDataListener`
-- `DataParser`
-- `DataSourceAdapter`
+- `PatientDataGenerator`
+- `BloodSaturationDataGenerator`
+- `BloodPressureDataGenerator`
+- `FileOutputStrategy`
+- `ConsoleOutputStrategy`
+- `TcpOutputStrategy`
+- `WebSocketOutputStrategy`
 
 ### Key Relationships
-- All data listeners implement the `DataListener` interface.
-- Listeners receive raw data and pass it to `DataParser`.
-- `DataSourceAdapter` standardizes the parsed data and sends it to storage.
+- `PatientDataGenerator` is implemented by generator classes like `BloodSaturationDataGenerator`.
+- `OutputStrategy` is implemented by classes like `FileOutputStrategy`, allowing data to be written to different output destinations.
+- This system shows how data generation and output strategies are linked.
 
 ### Explanation
-This layer separates the system's input sources from the core data processing logic. Whether the data comes from a file, TCP, or WebSocket, the system uses a common interface and parser to handle it uniformly. This approach improves modularity and allows new input types to be added with minimal changes to the rest of the system.
+This system generates patient data (e.g., blood saturation, blood pressure) and outputs it to various destinations (e.g., file, console, TCP, WebSocket). It provides a modular and extensible design to add new types of data generation and output handling.
+
+![Data Generation and Output System UML](datagen_output_system.png)
 
 ---
 

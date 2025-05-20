@@ -87,6 +87,10 @@ public class DataStorage {
         // DataReader reader = new SomeDataReaderImplementation("path/to/data");
         DataStorage storage = new DataStorage();
 
+        CholestrolFileReader reader = new CholestrolFileReader("output/");
+        reader.readData(storage);
+
+
         // Assuming the reader has been properly initialized and can read data into the
         // storage
         // reader.readData(storage);

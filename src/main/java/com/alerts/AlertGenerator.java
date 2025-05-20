@@ -18,6 +18,7 @@ import java.util.Comparator;
  */
 public class AlertGenerator {
     private DataStorage dataStorage;
+    private AlertFactory alertFactory;
 
     /**
      * Constructs an {@code AlertGenerator} with a specified {@code DataStorage}.
@@ -29,7 +30,10 @@ public class AlertGenerator {
      */
     public AlertGenerator(DataStorage dataStorage) {
         this.dataStorage = dataStorage;
+        this.alertFactory = alertFactory;
     }
+
+
 
     /**
      * Evaluates the specified patient's data to determine if any alert conditions
@@ -38,6 +42,8 @@ public class AlertGenerator {
      * method. This method should define the specific conditions under which an
      * alert
      * will be triggered.
+     *
+     *
      *
      * @param patient the patient data to evaluate for alert conditions
      */
@@ -48,11 +54,12 @@ public class AlertGenerator {
             if (record.getRecordType().equals("BloodPressureSystolic")) {
                 double systolic = record.getMeasurementValue();
                 if (systolic > 180 || systolic < 90) {
-                    Alert alert = new Alert(
-                            String.valueOf(record.getPatientId()),
-                            "Critical Systolic Blood Pressure: " + systolic,
-                            record.getTimestamp()
-                    );
+                    String patientId = String.valueOf(record.getPatientId());
+                    String message = "Critical Systolic Blood Pressure: " + systolic;
+                    long timestamp = record.getTimestamp();
+
+                    Alert alert = alertFactory.createAlert(patientId, message, timestamp);
+                    alert.display();
                     triggerAlert(alert);
                 }
             }
@@ -61,11 +68,12 @@ public class AlertGenerator {
             if (record.getRecordType().equals("BloodPressureDiastolic")) {
                 double diastolic = record.getMeasurementValue();
                 if (diastolic > 120 || diastolic < 60) {
-                    Alert alert = new Alert(
-                            String.valueOf(record.getPatientId()),
-                            "Critical Diastolic Blood Pressure: " + diastolic,
-                            record.getTimestamp()
-                    );
+                    String patientId = String.valueOf(record.getPatientId());
+                    String message = "Critical Systolic Blood Pressure: " + diastolic;
+                    long timestamp = record.getTimestamp();
+
+                    Alert alert = alertFactory.createAlert(patientId, message, timestamp);
+                    alert.display();
                     triggerAlert(alert);
                 }
             }
@@ -74,11 +82,12 @@ public class AlertGenerator {
             if (record.getRecordType().equals("SpO2")) {
                 double spo2 = record.getMeasurementValue();
                 if (spo2 < 92) {
-                    Alert alert = new Alert(
-                            String.valueOf(record.getPatientId()),
-                            "Low Blood Oxygen Saturation: " + spo2 + "%",
-                            record.getTimestamp()
-                    );
+                    String patientId = String.valueOf(record.getPatientId());
+                    String message = "Critical Systolic Blood Pressure: " + spo2;
+                    long timestamp = record.getTimestamp();
+
+                    Alert alert = alertFactory.createAlert(patientId, message, timestamp);
+                    alert.display();
                     triggerAlert(alert);
                 }
             }
@@ -117,11 +126,12 @@ public class AlertGenerator {
 
                 double endValue = end.getMeasurementValue();
                 if (startValue - endValue >= 5.0) {
-                    Alert alert = new Alert(
-                            String.valueOf(start.getPatientId()),
-                            "Rapid SpO2 Drop: from " + startValue + "% to " + endValue + "%",
-                            endTime
-                    );
+                    String patientId = String.valueOf(start.getPatientId());
+                    String message = "Rapid SpO2 Drop: from " + startValue + "% to " + endValue + "%";
+                    long timestamp = endTime;
+
+                    Alert alert = alertFactory.createAlert(patientId, message, timestamp);
+                    triggerAlert(alert);
                     triggerAlert(alert);
                     break; // alert triggered, skip to next i
                 }
@@ -148,14 +158,15 @@ public class AlertGenerator {
                     record.getMeasurementValue() < 92 &&
                     latestLowSystolic != null &&
                     Math.abs(record.getTimestamp() - systolicTime) <= 60_000) { // within 1 minute
-                Alert alert = new Alert(
-                        String.valueOf(record.getPatientId()),
-                        " Hypotensive Hypoxemia Detected (BP: " + latestLowSystolic +
-                                ", SpO2: " + record.getMeasurementValue() + ")",
-                        record.getTimestamp()
-                );
+                String patientId = String.valueOf(record.getPatientId());
+                String message = " Hypotensive Hypoxemia Detected (BP: " + latestLowSystolic +
+                        ", SpO2: " + record.getMeasurementValue() + ")";
+                long timestamp = record.getTimestamp();
+
+                Alert alert = alertFactory.createAlert(patientId, message, timestamp);
                 triggerAlert(alert);
                 latestLowSystolic = null; // prevent duplicate alert
+                triggerAlert(alert);
             }
         }
     }
@@ -192,13 +203,13 @@ public class AlertGenerator {
                 double avg = sum / windowValues.size();
 
                 if (current.getMeasurementValue() >= 3 * avg) {
-                    Alert alert = new Alert(
-                            String.valueOf(current.getPatientId()),
-                            "ECG Anomaly Detected: " + current.getMeasurementValue() +
-                                    " (Avg: " + avg + ")",
-                            currentTime
-                    );
+                    String patientId = String.valueOf(current.getPatientId());
+                    String message = "ECG Anomaly Detected: " + current.getMeasurementValue() + " (Avg: " + avg + ")";
+                    long timestamp = currentTime;
+
+                    Alert alert = alertFactory.createAlert(patientId, message, timestamp);
                     triggerAlert(alert);
+
                 }
             }
         }

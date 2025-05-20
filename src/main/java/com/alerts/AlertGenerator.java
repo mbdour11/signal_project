@@ -2,6 +2,13 @@ package com.alerts;
 
 import com.data_management.DataStorage;
 import com.data_management.Patient;
+import com.data_management.PatientRecord;
+import com.alerts.Alert;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Comparator;
+
+
 
 /**
  * The {@code AlertGenerator} class is responsible for monitoring patient data
@@ -35,8 +42,169 @@ public class AlertGenerator {
      * @param patient the patient data to evaluate for alert conditions
      */
     public void evaluateData(Patient patient) {
-        // Implementation goes here
+        for (PatientRecord record : patient.getRecords(Long.MIN_VALUE, Long.MAX_VALUE)) {
+
+            // --- 1. Systolic Blood Pressure Alert ---
+            if (record.getRecordType().equals("BloodPressureSystolic")) {
+                double systolic = record.getMeasurementValue();
+                if (systolic > 180 || systolic < 90) {
+                    Alert alert = new Alert(
+                            String.valueOf(record.getPatientId()),
+                            "Critical Systolic Blood Pressure: " + systolic,
+                            record.getTimestamp()
+                    );
+                    triggerAlert(alert);
+                }
+            }
+
+            // --- 2. Diastolic Blood Pressure Alert ---
+            if (record.getRecordType().equals("BloodPressureDiastolic")) {
+                double diastolic = record.getMeasurementValue();
+                if (diastolic > 120 || diastolic < 60) {
+                    Alert alert = new Alert(
+                            String.valueOf(record.getPatientId()),
+                            "Critical Diastolic Blood Pressure: " + diastolic,
+                            record.getTimestamp()
+                    );
+                    triggerAlert(alert);
+                }
+            }
+
+            // --- 3. SpO2 Low Saturation Alert ---
+            if (record.getRecordType().equals("SpO2")) {
+                double spo2 = record.getMeasurementValue();
+                if (spo2 < 92) {
+                    Alert alert = new Alert(
+                            String.valueOf(record.getPatientId()),
+                            "Low Blood Oxygen Saturation: " + spo2 + "%",
+                            record.getTimestamp()
+                    );
+                    triggerAlert(alert);
+                }
+            }
+        }
+        checkRapidSpo2Drop(patient);
+        checkRapidSpo2Drop(patient);
+        checkHypotensiveHypoxemia(patient);
+        checkECGAnomaly(patient);
+
+
+
     }
+
+    private void checkRapidSpo2Drop(Patient patient) {
+        List<PatientRecord> spo2Records = new ArrayList<>();
+
+        for (PatientRecord record : patient.getRecords(Long.MIN_VALUE, Long.MAX_VALUE)) {
+            if (record.getRecordType().equals("SpO2")) {
+                spo2Records.add(record);
+            }
+        }
+
+        // Sort by timestamp
+        spo2Records.sort(Comparator.comparingLong(PatientRecord::getTimestamp));
+
+        for (int i = 0; i < spo2Records.size(); i++) {
+            PatientRecord start = spo2Records.get(i);
+            long startTime = start.getTimestamp();
+            double startValue = start.getMeasurementValue();
+
+            for (int j = i + 1; j < spo2Records.size(); j++) {
+                PatientRecord end = spo2Records.get(j);
+                long endTime = end.getTimestamp();
+
+                if (endTime - startTime > 10 * 60 * 1000) break; // outside 10 min
+
+                double endValue = end.getMeasurementValue();
+                if (startValue - endValue >= 5.0) {
+                    Alert alert = new Alert(
+                            String.valueOf(start.getPatientId()),
+                            "Rapid SpO2 Drop: from " + startValue + "% to " + endValue + "%",
+                            endTime
+                    );
+                    triggerAlert(alert);
+                    break; // alert triggered, skip to next i
+                }
+            }
+        }
+
+    }
+
+    private void checkHypotensiveHypoxemia(Patient patient) {
+        List<PatientRecord> records = patient.getRecords(Long.MIN_VALUE, Long.MAX_VALUE);
+        records.sort(Comparator.comparingLong(PatientRecord::getTimestamp));
+
+        Double latestLowSystolic = null;
+        Long systolicTime = null;
+
+        for (PatientRecord record : records) {
+            if (record.getRecordType().equals("BloodPressureSystolic") &&
+                    record.getMeasurementValue() < 90) {
+                latestLowSystolic = record.getMeasurementValue();
+                systolicTime = record.getTimestamp();
+            }
+
+            if (record.getRecordType().equals("SpO2") &&
+                    record.getMeasurementValue() < 92 &&
+                    latestLowSystolic != null &&
+                    Math.abs(record.getTimestamp() - systolicTime) <= 60_000) { // within 1 minute
+                Alert alert = new Alert(
+                        String.valueOf(record.getPatientId()),
+                        " Hypotensive Hypoxemia Detected (BP: " + latestLowSystolic +
+                                ", SpO2: " + record.getMeasurementValue() + ")",
+                        record.getTimestamp()
+                );
+                triggerAlert(alert);
+                latestLowSystolic = null; // prevent duplicate alert
+            }
+        }
+    }
+
+    private void checkECGAnomaly(Patient patient) {
+        List<PatientRecord> ecgRecords = new ArrayList<>();
+
+        for (PatientRecord record : patient.getRecords(Long.MIN_VALUE, Long.MAX_VALUE)) {
+            if (record.getRecordType().equals("ECG")) {
+                ecgRecords.add(record);
+            }
+        }
+
+        ecgRecords.sort(Comparator.comparingLong(PatientRecord::getTimestamp));
+
+        for (int i = 0; i < ecgRecords.size(); i++) {
+            PatientRecord current = ecgRecords.get(i);
+            long currentTime = current.getTimestamp();
+
+            // Collect all records within 5 minutes before this one
+            List<Double> windowValues = new ArrayList<>();
+            for (int j = i - 1; j >= 0; j--) {
+                PatientRecord past = ecgRecords.get(j);
+                if (currentTime - past.getTimestamp() <= 5 * 60 * 1000) {
+                    windowValues.add(past.getMeasurementValue());
+                } else {
+                    break;
+                }
+            }
+
+            if (windowValues.size() >= 3) { // only if there's enough context
+                double sum = 0;
+                for (double v : windowValues) sum += v;
+                double avg = sum / windowValues.size();
+
+                if (current.getMeasurementValue() >= 3 * avg) {
+                    Alert alert = new Alert(
+                            String.valueOf(current.getPatientId()),
+                            "ECG Anomaly Detected: " + current.getMeasurementValue() +
+                                    " (Avg: " + avg + ")",
+                            currentTime
+                    );
+                    triggerAlert(alert);
+                }
+            }
+        }
+    }
+
+
 
     /**
      * Triggers an alert for the monitoring system. This method can be extended to

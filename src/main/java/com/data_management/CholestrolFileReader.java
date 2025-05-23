@@ -59,4 +59,9 @@ public class CholestrolFileReader implements DataReader {
             return null;
         }
     }
+    @Override
+    public void connectToStream(String uri, DataStorage storage) {
+        throw new UnsupportedOperationException("Streaming not supported in CholestrolFileReader");
+    }
+
 }

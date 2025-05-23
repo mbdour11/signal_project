@@ -56,13 +56,19 @@ public class AlertGenerator {
                 AlertStrategy strategy = strategies.get(type);
                 if (strategy.checkAlert(record)) {
                     AlertFactory factory = factories.get(type);
-                    Alert alert = factory.createAlert(
+                    Alert baseAlert = factory.createAlert(
                             String.valueOf(record.getPatientId()),
                             "Abnormal " + type + ": " + record.getMeasurementValue(),
                             record.getTimestamp()
                     );
-                    alert.display();
-                    triggerAlert(alert);
+
+// Wrap with decorators
+                    Alert decorated = new PriorityAlertDecorator(baseAlert, "HIGH");
+                    decorated = new RepeatedAlertDecorator(decorated, 3, 1000); // 3x with 1 sec delay
+
+                    decorated.display();
+                    triggerAlert(decorated);
+
                 }
             }
         }

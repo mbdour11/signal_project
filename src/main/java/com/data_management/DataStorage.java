@@ -11,16 +11,32 @@ import com.alerts.AlertGenerator;
  * system.
  * This class serves as a repository for all patient records, organized by
  * patient IDs.
+ * <p>
+ * Implements the Singleton Pattern to ensure only one instance exists.
  */
 public class DataStorage {
+    private static DataStorage instance; // Singleton instance
     private Map<Integer, Patient> patientMap; // Stores patient objects indexed by their unique patient ID.
 
     /**
-     * Constructs a new instance of DataStorage, initializing the underlying storage
-     * structure.
+     * Private constructor prevents instantiation from outside the class.
+     * Initializes the underlying storage structure.
      */
-    public DataStorage() {
+    private DataStorage() {
         this.patientMap = new HashMap<>();
+    }
+
+    /**
+     * Returns the singleton instance of the DataStorage class.
+     * If the instance does not exist, it is created.
+     *
+     * @return the singleton instance of DataStorage
+     */
+    public static DataStorage getInstance() {
+        if (instance == null) {
+            instance = new DataStorage();
+        }
+        return instance;
     }
 
     /**
@@ -79,21 +95,16 @@ public class DataStorage {
      * The main method for the DataStorage class.
      * Initializes the system, reads data into storage, and continuously monitors
      * and evaluates patient data.
-     * 
+     *
      * @param args command line arguments
      */
     public static void main(String[] args) {
         // DataReader is not defined in this scope, should be initialized appropriately.
         // DataReader reader = new SomeDataReaderImplementation("path/to/data");
-        DataStorage storage = new DataStorage();
+        DataStorage storage = DataStorage.getInstance();
 
         CholestrolFileReader reader = new CholestrolFileReader("output/");
         reader.readData(storage);
-
-
-        // Assuming the reader has been properly initialized and can read data into the
-        // storage
-        // reader.readData(storage);
 
         // Example of using DataStorage to retrieve and print records for a patient
         List<PatientRecord> records = storage.getRecords(1, 1700000000000L, 1800000000000L);

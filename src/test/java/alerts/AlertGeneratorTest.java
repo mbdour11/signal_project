@@ -1,4 +1,4 @@
-package data_management;
+package alerts;
 
 import org.junit.jupiter.api.Test;
 import com.alerts.AlertGenerator;
@@ -6,7 +6,6 @@ import com.data_management.DataStorage;
 import com.data_management.Patient;
 import com.data_management.PatientRecord;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 
 public class AlertGeneratorTest {
 
@@ -16,7 +15,7 @@ public class AlertGeneratorTest {
     @BeforeEach
     void setUp() {
         testPatient = new Patient(1);
-        DataStorage mockStorage = new DataStorage();
+        DataStorage mockStorage = DataStorage.getInstance();
         alertGenerator = new AlertGenerator(mockStorage);
     }
 
